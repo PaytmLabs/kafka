@@ -38,16 +38,12 @@ object ConsumerConfig extends Config {
   val ConsumerTimeoutMs = -1
   val MinFetchBytes = 1
   val MaxFetchWaitMs = 100
-  val MirrorTopicsWhitelist = ""
-  val MirrorTopicsBlacklist = ""
   val MirrorConsumerNumThreads = 1
   val OffsetsChannelBackoffMs = 1000
   val OffsetsChannelSocketTimeoutMs = 10000
   val OffsetsCommitMaxRetries = 5
   val OffsetsStorage = "zookeeper"
 
-  val MirrorTopicsWhitelistProp = "mirror.topics.whitelist"
-  val MirrorTopicsBlacklistProp = "mirror.topics.blacklist"
   val ExcludeInternalTopics = true
   val DefaultPartitionAssignmentStrategy = "range" /* select between "range", and "roundrobin" */
   val MirrorConsumerNumThreadsProp = "mirror.consumer.numthreads"

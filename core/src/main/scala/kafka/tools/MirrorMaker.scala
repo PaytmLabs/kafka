@@ -173,8 +173,8 @@ object MirrorMaker extends Logging with KafkaMetricsGroup {
       }
 
       CommandLineUtils.checkRequiredArgs(parser, options, consumerConfigOpt, producerConfigOpt)
-      if (List(whitelistOpt, blacklistOpt).count(options.has) != 1) {
-        println("Exactly one of whitelist or blacklist is required.")
+      if (List(whitelistOpt, blacklistOpt).count(options.has) > 1) {
+        println("Exactly one of whitelist or blacklist is valid if used.")
         System.exit(1)
       }
 
@@ -297,8 +297,12 @@ object MirrorMaker extends Logging with KafkaMetricsGroup {
       new ZookeeperConsumerConnector(consumerConfig)
     }
 
-    // create filters
-    val filterSpec = if (whitelist.isDefined)
+    // create filters, prefer property-based settings, fall back to CLI
+    val filterSpec = if (consumerConfigProps.containsKey("mirror.topics.whitelist"))
+      new Whitelist(consumerConfigProps.getProperty("mirror.topics.whitelist"))
+    else if (consumerConfigProps.containsKey("mirror.topics.blacklist"))
+      new Blacklist(consumerConfigProps.getProperty("mirror.topics.blacklist"))
+    else if (whitelist.isDefined)
       new Whitelist(whitelist.get)
     else if (blacklist.isDefined)
       new Blacklist(blacklist.get)
@@ -329,8 +333,16 @@ object MirrorMaker extends Logging with KafkaMetricsGroup {
       consumerConfigProps.setProperty("client.id", groupIdString + "-" + i.toString)
       new KafkaConsumer[Array[Byte], Array[Byte]](consumerConfigProps)
     }
-    whitelist.getOrElse(throw new IllegalArgumentException("White list cannot be empty for new consumer"))
-    consumers.map(consumer => new MirrorMakerNewConsumer(consumer, customRebalanceListener, whitelist))
+
+    // create whitelist, prefer property-based settings, fall back to CLI
+    val filterSpec = if (consumerConfigProps.containsKey("mirror.topics.whitelist"))
+      Option(consumerConfigProps.getProperty("mirror.topics.whitelist"))
+    else if (whitelist.isDefined)
+      whitelist
+    else
+      throw new IllegalArgumentException("White list cannot be empty for new consumer")
+
+    consumers.map(consumer => new MirrorMakerNewConsumer(consumer, customRebalanceListener, filterSpec))
   }
 
   def commitOffsets(mirrorMakerConsumer: MirrorMakerBaseConsumer) {
